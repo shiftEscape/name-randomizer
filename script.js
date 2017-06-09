@@ -1,8 +1,211 @@
-// Code goes here
+// Author: Alvin James Bellero <ajames.bellero@gmail.com>
+// NPM: https://www.npmjs.com/~shiftescape
 
 window.onload = function() {
-  
-  var snd = new Audio("beeptrim.wav");
+
+  // Source: http://jsfiddle.net/Javalsu/vxP5q/743/embedded/result/
+
+  var canvas;
+  var ctx;
+  var W;
+  var H;
+  var mp = 150; //max particles
+  var particles = [];
+  var angle = 0;
+  var tiltAngle = 0;
+  var confettiActive = true;
+  var animationComplete = true;
+  var deactivationTimerHandler;
+  var reactivationTimerHandler;
+  var animationHandler;
+
+  // objects
+
+  var particleColors = {
+      colorOptions: ["DodgerBlue", "OliveDrab", "Gold", "pink", "SlateBlue", "lightblue", "Violet", "PaleGreen", "SteelBlue", "SandyBrown", "Chocolate", "Crimson"],
+      colorIndex: 0,
+      colorIncrementer: 0,
+      colorThreshold: 10,
+      getColor: function () {
+          if (this.colorIncrementer >= 10) {
+              this.colorIncrementer = 0;
+              this.colorIndex++;
+              if (this.colorIndex >= this.colorOptions.length) {
+                  this.colorIndex = 0;
+              }
+          }
+          this.colorIncrementer++;
+          return this.colorOptions[this.colorIndex];
+      }
+  }
+
+  window.requestAnimFrame = (function () {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
+          return window.setTimeout(callback, 1000 / 60);
+      };
+  })();
+
+  function confettiParticle(color) {
+      this.x = Math.random() * W; // x-coordinate
+      this.y = (Math.random() * H) - H; //y-coordinate
+      this.r = RandomFromTo(10, 30); //radius;
+      this.d = (Math.random() * mp) + 10; //density;
+      this.color = color;
+      this.tilt = Math.floor(Math.random() * 10) - 10;
+      this.tiltAngleIncremental = (Math.random() * 0.07) + .05;
+      this.tiltAngle = 0;
+
+      this.draw = function () {
+          ctx.beginPath();
+          ctx.lineWidth = this.r / 2;
+          ctx.strokeStyle = this.color;
+          ctx.moveTo(this.x + this.tilt + (this.r / 4), this.y);
+          ctx.lineTo(this.x + this.tilt, this.y + this.tilt + (this.r / 4));
+          return ctx.stroke();
+      }
+  }
+
+  SetGlobals();
+
+  function SetGlobals() {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+  }
+
+  function InitializeConfetti() {
+      particles = [];
+      animationComplete = false;
+      for (var i = 0; i < mp; i++) {
+          var particleColor = particleColors.getColor();
+          particles.push(new confettiParticle(particleColor));
+      }
+      StartConfetti();
+  }
+
+  function Draw() {
+      ctx.clearRect(0, 0, W, H);
+      var results = [];
+      for (var i = 0; i < mp; i++) {
+          (function (j) {
+              results.push(particles[j].draw());
+          })(i);
+      }
+      Update();
+
+      return results;
+  }
+
+  function RandomFromTo(from, to) {
+      return Math.floor(Math.random() * (to - from + 1) + from);
+  }
+
+
+  function Update() {
+      var remainingFlakes = 0;
+      var particle;
+      angle += 0.01;
+      tiltAngle += 0.1;
+
+      for (var i = 0; i < mp; i++) {
+          particle = particles[i];
+          if (animationComplete) return;
+
+          if (!confettiActive && particle.y < -15) {
+              particle.y = H + 100;
+              continue;
+          }
+
+          stepParticle(particle, i);
+
+          if (particle.y <= H) {
+              remainingFlakes++;
+          }
+          CheckForReposition(particle, i);
+      }
+
+      if (remainingFlakes === 0) {
+          StopConfetti();
+      }
+  }
+
+  function CheckForReposition(particle, index) {
+      if ((particle.x > W + 20 || particle.x < -20 || particle.y > H) && confettiActive) {
+          if (index % 5 > 0 || index % 2 == 0) //66.67% of the flakes
+          {
+              repositionParticle(particle, Math.random() * W, -10, Math.floor(Math.random() * 10) - 10);
+          } else {
+              if (Math.sin(angle) > 0) {
+                  //Enter from the left
+                  repositionParticle(particle, -5, Math.random() * H, Math.floor(Math.random() * 10) - 10);
+              } else {
+                  //Enter from the right
+                  repositionParticle(particle, W + 5, Math.random() * H, Math.floor(Math.random() * 10) - 10);
+              }
+          }
+      }
+  }
+  function stepParticle(particle, particleIndex) {
+      particle.tiltAngle += particle.tiltAngleIncremental;
+      particle.y += (Math.cos(angle + particle.d) + 3 + particle.r / 2) / 2;
+      particle.x += Math.sin(angle);
+      particle.tilt = (Math.sin(particle.tiltAngle - (particleIndex / 3))) * 15;
+  }
+
+  function repositionParticle(particle, xCoordinate, yCoordinate, tilt) {
+      particle.x = xCoordinate;
+      particle.y = yCoordinate;
+      particle.tilt = tilt;
+  }
+
+  function StartConfetti() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+      (function animloop() {
+          if (animationComplete) return null;
+          animationHandler = requestAnimFrame(animloop);
+          return Draw();
+      })();
+  }
+
+  function ClearTimers() {
+      clearTimeout(reactivationTimerHandler);
+      clearTimeout(animationHandler);
+  }
+
+  function DeactivateConfetti() {
+      confettiActive = false;
+      ClearTimers();
+  }
+
+  function StopConfetti() {
+      animationComplete = true;
+      if (ctx == undefined) return;
+      ctx.clearRect(0, 0, W, H);
+  }
+
+  function RestartConfetti() {
+      ClearTimers();
+      StopConfetti();
+      reactivationTimerHandler = setTimeout(function () {
+          confettiActive = true;
+          animationComplete = false;
+          InitializeConfetti();
+      }, 100);
+
+  }
+
+// =============================================================================================
+
+  var loopDuration = 5;
+  var sndTick = new Audio("beeptrim.wav");
+  var sndWin = new Audio("win.mp3");
+
   var origList = ['ABAD, NIKKI NOREEN',
                   'ABAO, EMMANUEL',
                   'ABELLA, RYAN',
@@ -12,7 +215,7 @@ window.onload = function() {
                   'AGUILAR, LYRA MAY',
                   'ALBOR, RHESHELLE MAE',
                   'ALEGRIA, CHERYL MARIE',
-                  'ALINSUG, NIÑA',
+                  'ALINSUG, NINA',
                   'ALLEGO, KEEFER LLOYD',
                   'ALMIA, CELSO LANCE',
                   'ALONSO, CYD',
@@ -28,7 +231,7 @@ window.onload = function() {
                   'ARDINA, JEZRIEL',
                   'ARELLANO, JUDE ACE CHRISTIAN',
                   'ARRIBA, RACHEL',
-                  'ASCAÑO, CHRISTIAN VER',
+                  'ASCANO, CHRISTIAN VER',
                   'ATIS, REYMOND',
                   'AVES, CHINO JOSEPH',
                   'AYCARDO, VINCENT',
@@ -67,13 +270,13 @@ window.onload = function() {
                   'CRISTAL JR., ISMAEL',
                   'CUIZON, PAULINE',
                   'CULABAN, EDMON',
-                  'CUÑA, ANNA DOMINIQUE',
-                  'DAÑO, JASMIN',
+                  'CUNA, ANNA DOMINIQUE',
+                  'DANO, JASMIN',
                   'DATANAGAN, JONATHAN',
                   'DE GUZMAN, RHEA MAY',
                   'DE JESUS, ARNIEL',
                   'DE LA CRUZ, CHRISTINE JOY',
-                  'DE LA PEÑA, HENDRIX',
+                  'DE LA PENA, HENDRIX',
                   'DE LEON, TRYLLE GOODIE',
                   'DEL CORRO, NOEL',
                   'DEL ROSARIO, MA. JESCELYN',
@@ -122,7 +325,7 @@ window.onload = function() {
                   'LAPESIGUE, RICHARD',
                   'LAPIZ, KEVIN JAY',
                   'LARISMA, JOSE III',
-                  'LASPIÑAS, RAFFY',
+                  'LASPINAS, RAFFY',
                   'LEDESMA, RANDOLPH',
                   'LEWIS, CHARLENE GAYLE',
                   'LIMPANGOG, ZENICA JOY',
@@ -235,6 +438,7 @@ window.onload = function() {
       btnClaimed = document.getElementById('btn-claimed'),
       numEntries = document.getElementById('num-entries'),
       btnStartOver = document.getElementById('btn-startover');
+      imgCongrats = document.getElementById('congrats');
   
   function updateEntriesCount() {
     numEntries.innerHTML = entriesList.length;
@@ -248,29 +452,34 @@ window.onload = function() {
     return entriesList.length > 0;
   }
   
-  function playSound() { // buffers automatically when created  
-    snd.currentTime = 0;
-    snd.play();
+  function playSound(type) {
+    var player = type == 'tick' ? sndTick : sndWin;
+    player.currentTime = 0;
+    player.play();
   }
-  
-  function startOver() {
-    entriesList = ['Alvin James', 'Franceley', 'Herbert', 'Jovit', 'Chino', 'Vince'];
-    updateEntriesCount();
-    outName.innerHTML = defaultText;
-    btnRandom.style.display = 'inline-block';
-    btnRandom.disabled = false;
-    btnStartOver.style.display = 'none';
+
+  function labelWinName(isWin) {
+    if(isWin) {
+      imgCongrats.style.display = 'block';
+      imgCongrats.classList.add('win');
+    } else {
+      imgCongrats.style.display = 'none';
+      imgCongrats.classList.remove('win');
+    }
   }
 
   function randomizer() {
     var tOutRand = setTimeout(function () {
       rand = Math.floor(Math.random() * entriesList.length);
-      playSound();
+      playSound('tick');
       pickedEntry = entriesList[rand];
       outName.innerHTML = pickedEntry;
       if(!isStopOut) {
         randomizer();
       } else {
+        labelWinName(true);
+        RestartConfetti();
+        playSound('win');
         clearTimeout(tOutRand);
       }
     }, 100);
@@ -294,20 +503,22 @@ window.onload = function() {
 
   btnRandom.addEventListener("click", function() {
     this.disabled = true;
+    outName.style.display = 'block';
     btnClaimed.style.display = 'none';
-    if(isValidForRandomize()) theLoop(3);
+    if(isValidForRandomize()) theLoop(loopDuration);
+    
   });
   
   btnClaimed.addEventListener("click", function() {
     entriesList.splice(rand, 1);
     updateEntriesCount();
-    console.log(entriesList);
-    console.log(rand);
-    console.log(entriesList.length);
+    labelWinName(false);
+    StopConfetti();
+
     if(entriesList.length == 1) {
       outName.innerHTML = entriesList[0];
     } else {
-      outName.innerHTML = entriesList.length === 0 ? 'No entries left' : defaultText;
+      outName.innerHTML = entriesList.length === 0 ? 'No entries left' : '';
       if(entriesList.length === 0) {
         btnRandom.style.display = 'none';
         btnStartOver.style.display = 'inline-block';
@@ -317,8 +528,23 @@ window.onload = function() {
       btnClaimed.style.display = 'none';
     }
 
+    outName.style.display = 'none';
+
   });
   
-  btnStartOver.addEventListener("click", startOver);
+  btnStartOver.addEventListener("click", function startOver() {
+    entriesList = origList;
+    updateEntriesCount();
+    btnRandom.style.display = 'inline-block';
+    btnRandom.disabled = false;
+    btnStartOver.style.display = 'none';
+  });
 
+};
+
+window.onresize = function () {
+  canvas.left = 0;
+  canvas.right = 0;
+  canvas.top = 0;
+  canvas.bottom = 0;
 };

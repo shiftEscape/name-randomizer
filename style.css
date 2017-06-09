@@ -1,0 +1,70 @@
+* {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Open Sans'), local('OpenSans'), url('opensans.css') format('woff');
+}
+
+html {
+    height: 100%;
+}
+
+.win {
+  animation: blinker 0.5s linear infinite;
+}
+
+@keyframes blinker {  
+  50% { opacity: 0; }
+}
+
+#num-entries {
+    background: green;
+    color: #FFF;
+    padding: 2px 5px;
+    font-weight: bold;
+}
+
+#wrapper {
+    margin: 0 auto;
+    width: 90%;
+    text-align: center;
+    margin-top: 10%;
+}
+
+#name {
+    font-weight: bold;
+    font-size: 7em;
+    height: 220px;
+    display: none;
+    margin-top: 0;
+    margin-bottom: 40px;
+    line-height: 105px;
+    color: #2f2f2f;
+}
+
+button {
+    background: #64DD17;
+    color: #FFF;
+    font-size: 50px;
+    font-weight: 300;
+    padding: 20px 30px;
+    cursor: pointer;
+    border: none;
+}
+
+button:hover {
+    background: #53b316;
+}
+
+button:disabled {
+    background: #C5E1A5;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -999;
+}
