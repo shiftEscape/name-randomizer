@@ -239,6 +239,17 @@ window.onload = function() {
       btnStartOver = document.getElementById('btn-startover');
       imgCongrats = document.getElementById('congrats');
   
+  generateListBox();
+  
+  function generateListBox () {
+      var lb = document.getElementById('names');
+      for (var i in entriesList) {
+          var opt = document.createElement("option");
+          opt.text = opt.value = entriesList[i];
+          lb.options.add(opt)
+      } lb.size = entriesList.length;
+  }
+
   function updateEntriesCount() {
     numEntries.innerHTML = entriesList.length;
   }
@@ -268,11 +279,14 @@ window.onload = function() {
   }
 
   function randomizer() {
+    var list = document.getElementById('names');
+
     var tOutRand = setTimeout(function () {
       rand = Math.floor(Math.random() * entriesList.length);
       playSound('tick');
       pickedEntry = entriesList[rand];
       outName.innerHTML = pickedEntry;
+      list.value = pickedEntry;
       if(!isStopOut) {
         randomizer();
       } else {
@@ -302,30 +316,48 @@ window.onload = function() {
 
   // ================================================================
   
-    if (!annyang) {
-        console.log("Speech Recognition is not supported");
-    } else {
-        console.info("Annyang supported!")
+    // if (!annyang) {
+    //     console.log("Speech Recognition is not supported");
+    // } else {
+    //     console.info("Annyang supported!")
+    // }
+
+    // var commands = {
+    //     ':start': function () {
+    //         btnRandom.click();
+    //     },
+    //     ':next': function () {
+    //         btnClaimed.click();
+    //     },
+    // };
+
+    // // Add our commands to annyang
+    // annyang.addCommands(commands);
+
+    // annyang.addCallback('resultNoMatch', function (phrases) {
+    //     console.log("I think the user said: ", phrases[0]);
+    //     console.log("But then again, it could be any of the following: ", phrases);
+    // });
+
+    // annyang.addCallback('resultMatch', function (phrases) {
+    //     console.log("I think the user said: ", phrases[0]);
+    //     console.log("But then again, it could be any of the following: ", phrases);
+    // });
+
+    document.body.onkeydown = function (e) {
+        var btnRand = document.getElementById('btn-random')
+        var btnNext = document.getElementById('btn-claimed')
+        console.log(btnNext.attributes.style.value)
+        var isVisibleNext = btnNext.attributes.style.value !== 'display: none;';
+        console.log(isVisibleNext)
+        if (e.key == 'o' && (!btnRand.disabled && !isVisibleNext)) {
+            btnRandom.click();
+        }
+        if (e.key == 'p' && isVisibleNext) {
+            btnClaimed.click();
+        }
     }
 
-    var commands = {
-        'start': function () {
-            btnRandom.click();
-        },
-        'next': function () {
-            btnClaimed.click();
-        },
-    };
-
-    // Add our commands to annyang
-    annyang.addCommands(commands);
-
-    annyang.addCallback('resultNoMatch', function (phrases) {
-        console.log("I think the user said: ", phrases[0]);
-        console.log("But then again, it could be any of the following: ", phrases);
-    });
-    // Start listening. You can call this here, or attach this call to an event, button, etc.
-    annyang.start();
 
   btnRandom.addEventListener("click", function() {
     this.disabled = true;
@@ -355,7 +387,8 @@ window.onload = function() {
     }
 
     outName.style.display = 'none';
-
+    document.getElementById('names').innerHTML = "";
+    generateListBox();
   });
   
   btnStartOver.addEventListener("click", function startOver() {
